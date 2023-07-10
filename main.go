@@ -23,7 +23,6 @@ func main() {
 		RouterItem{Path: "/status", Handle: statusHandle},
 	)
 
-	log.Fatal(
-		RunServer(),
-	)
+	err = RunServer()
+	log.Fatal(err)
 }
