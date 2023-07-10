@@ -1,0 +1,11 @@
+.form {
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+}
+
+.form label {
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+}
