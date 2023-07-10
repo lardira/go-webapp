@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 )
 
-func statusHandle(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "ok")
+const API_VERSION = "v1"
+const STATIC_PATH = "www/build"
+
+func apiPath(path string) string {
+	return fmt.Sprintf("/api/%v%v", API_VERSION, path)
 }
 
 func main() {
@@ -17,12 +21,46 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Printf("Running server on port: %v", appConfig.Port)
+	staticServer := InitServer(
+		"STATIC",
+		appConfig.Static.Port,
+		Endpoint{
+			Path: "/",
+			Handler: func(w http.ResponseWriter, r *http.Request) {
+				fileServer := http.FileServer(http.Dir(STATIC_PATH))
+				fileMatcher := regexp.MustCompile(`\.[a-zA-Z]*$`)
 
-	InitServer(appConfig.Host, appConfig.Port).Add(
-		RouterItem{Path: "/status", Handle: statusHandle},
+				if !fileMatcher.MatchString(r.URL.Path) {
+					indexPath := fmt.Sprint(STATIC_PATH, "/index.html")
+					http.ServeFile(w, r, indexPath)
+				} else {
+					fileServer.ServeHTTP(w, r)
+				}
+			},
+		},
 	)
 
-	err = RunServer()
-	log.Fatal(err)
+	staticServer.EnableLogging()
+
+	apiServer := InitServer(
+		"API",
+		appConfig.Port,
+		Endpoint{
+			Path: "/status",
+			Handler: func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintln(w, "ok")
+			},
+		},
+		Endpoint{
+			Path: apiPath("/test"),
+			Handler: func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintln(w, "ok")
+			},
+		},
+	)
+
+	apiServer.EnableLogging()
+
+	go RunServer(&staticServer)
+	RunServer(&apiServer)
 }

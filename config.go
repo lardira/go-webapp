@@ -8,8 +8,12 @@ import (
 
 type AppConfig struct {
 	Port     string   `json:"port"`
-	Host     string   `json:"host"`
 	DbConfig DBConfig `json:"db"`
+	Static   Static   `json:"static"`
+}
+
+type Static struct {
+	Port string `json:"port"`
 }
 
 type DBConfig struct {

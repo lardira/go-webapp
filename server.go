@@ -2,61 +2,74 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"net/http"
-	"strings"
+	"os"
 	"time"
 )
 
-var Session *http.Server
-
-type Handle func(http.ResponseWriter, *http.Request)
-
-type Router struct {
-	mux map[string]Handle
+type Server struct {
+	Handler http.Handler
+	Address string
+	Name    string
 }
 
-type RouterItem struct {
-	Path   string
-	Handle Handle
+type Endpoint struct {
+	Method  string
+	Path    string
+	Handler http.HandlerFunc
 }
 
-func (rt *Router) Add(items ...RouterItem) {
-	for _, item := range items {
-		rt.mux[item.Path] = item.Handle
+func InitServer(name, port string, endpoints ...Endpoint) Server {
+	address := fmt.Sprint(":", port)
+	server := http.NewServeMux()
+
+	for _, endpoint := range endpoints {
+		server.HandleFunc(endpoint.Path, endpoint.Handler)
+	}
+
+	return Server{
+		Name:    name,
+		Handler: server,
+		Address: address,
 	}
 }
 
-func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	head := GetHeader(r.URL.Path)
-	handle, ok := rt.mux[head]
-	if ok {
-		handle(w, r)
-		return
-	}
-	http.NotFound(w, r)
+func (s *Server) EnableLogging() {
+	logFileNameFormat := "logs/%s-%v-%v_log.txt"
+	timeNow := time.Now()
+	logFileName := fmt.Sprintf(logFileNameFormat, s.Name, timeNow.Day(), timeNow.Year())
+
+	handler := s.Handler
+
+	s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logFile, err := os.OpenFile(
+			logFileName,
+			os.O_CREATE|os.O_APPEND|os.O_RDWR,
+			0666,
+		)
+
+		if err != nil {
+			panic(err)
+		}
+
+		multiWriter := io.MultiWriter(os.Stdout, logFile)
+		log.SetOutput(multiWriter)
+
+		logMsg := fmt.Sprintf(
+			"%v - %v",
+			r.Method,
+			r.RequestURI,
+		)
+		log.Println(logMsg)
+		handler.ServeHTTP(w, r)
+
+		logFile.Close()
+	})
 }
 
-func InitServer(host, port string) *Router {
-	router := &Router{
-		mux: make(map[string]Handle),
-	}
-
-	Session = &http.Server{
-		Addr:           fmt.Sprintf("%s:%s", host, port),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
-		Handler:        router,
-	}
-
-	return router
-}
-
-func GetHeader(url string) string {
-	sl := strings.Split(url, "/")
-	return fmt.Sprintf("/%s", sl[1])
-}
-
-func RunServer() error {
-	return Session.ListenAndServe()
+func RunServer(server *Server) error {
+	log.Printf("Running server on address %v", server.Address)
+	return http.ListenAndServe(server.Address, server.Handler)
 }
