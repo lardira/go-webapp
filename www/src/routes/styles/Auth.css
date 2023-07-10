@@ -1,0 +1,13 @@
+#auth {
+  display: flex;
+  flex-flow: row;
+  justify-content: center;
+  padding: 150px;
+}
+
+.form-container {
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  margin: 50px;
+}
