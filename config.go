@@ -8,7 +8,7 @@ import (
 
 type AppConfig struct {
 	Port     string   `json:"port"`
-	Host     string   `json:host`
+	Host     string   `json:"host"`
 	DbConfig DBConfig `json:"db"`
 }
 
