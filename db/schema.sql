@@ -1,6 +1,6 @@
 CREATE TABLE users (
   id BIGSERIAL PRIMARY KEY,
-  login VARCHAR(64) NOT NULL,
+  login VARCHAR(64) NOT NULL UNIQUE,
   password TEXT NOT NULL,
   last_auth TIMESTAMP,
   last_unauth TIMESTAMP,
@@ -41,3 +41,7 @@ CREATE TABLE test_result (
   test_id BIGINT NOT NULL REFERENCES user_test(id),
   CHECK(percent BETWEEN 0 AND 100)
 );
+
+INSERT INTO users 
+(login, password, created_at, updated_at) 
+VALUES ('admin', 'admin', NOW(), NOW());
