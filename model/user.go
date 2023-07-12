@@ -3,7 +3,6 @@ package model
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -39,14 +38,13 @@ func (u *UserRequest) Validate() (err error) {
 }
 
 func CreateUser(db *sql.DB, login, password string) (User, error) {
-
-	query := fmt.Sprint(
-		"INSERT INTO users",
-		"(login, password, last_auth, last_unauth, created_at, updated_at, is_auth)",
-		"VALUES",
-		"($1, $2, $3, $4, $5, $6, $7)",
-		"RETURNING id",
-	)
+	query := `
+		INSERT INTO users
+		(login, password, last_auth, last_unauth, created_at, updated_at, is_auth)
+		VALUES
+		($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id
+	`
 
 	timeNow := time.Now()
 
@@ -78,29 +76,26 @@ func CreateUser(db *sql.DB, login, password string) (User, error) {
 		nil
 }
 
-func SetUserAuth(db *sql.DB, id int64, auth bool) error {
-	var authUnauthQuery string
-	if auth {
-		authUnauthQuery = "last_auth=$2"
-	} else {
-		authUnauthQuery = "last_unauth=$2"
+func LogOutUser(db *sql.DB, login, password string) error {
+	_, err := GetUserByLoginAndPasword(db, login, password)
+	if err != nil {
+		return err
 	}
 
-	query := fmt.Sprint(
-		"UPDATE users ",
-		"SET is_auth=$1, ",
-		authUnauthQuery,
-		", updated_at=$3 ",
-		"WHERE id=$4",
-	)
+	query := `
+		UPDATE users 
+		SET is_auth=$1, last_unauth=$2, updated_at=$3
+		WHERE login=$4 AND password=$5
+	`
 	timeNow := time.Now()
 
-	_, err := db.Exec(
+	_, err = db.Exec(
 		query,
-		auth,
+		false,
 		timeNow,
 		timeNow,
-		id,
+		login,
+		password,
 	)
 
 	return err

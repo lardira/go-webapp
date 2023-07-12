@@ -18,7 +18,7 @@ CREATE TABLE task (
   id BIGSERIAL PRIMARY KEY,
   task VARCHAR(256) NOT NULL,
   answer TEXT NOT NULL,
-  options TEXT ARRAY[4] NOT NULL,
+  options jsonb NOT NULL,
   variant_id BIGINT NOT NULL REFERENCES test_variant(id)
 );
 
@@ -42,6 +42,55 @@ CREATE TABLE test_result (
   CHECK(percent BETWEEN 0 AND 100)
 );
 
+-- TEST DATA
+
 INSERT INTO users 
 (login, password, created_at, updated_at) 
 VALUES ('admin', 'admin', NOW(), NOW());
+
+-- CREATING 2 VARIANTS 
+
+INSERT INTO test_variant
+(name)
+VALUES ('Variant 1');
+
+INSERT INTO test_variant
+(name)
+VALUES ('Variant 2');
+
+-- ADDING 3 TASKS TO VARIANT 1
+
+INSERT INTO task
+(task, answer, variant_id, options)
+VALUES ('What is 2 * 2?', '4', 1, '["4", "2", "1", "6"]');
+
+INSERT INTO task
+(task, answer, variant_id, options)
+VALUES ('What is 2 - 2?', '0', 1, '["3", "2", "0", "1"]');
+
+INSERT INTO task
+(task, answer, variant_id, options)
+VALUES (
+  '0 * 10000000 ?',
+  '0',
+  1,
+  '["...", "0", "10000000", "I dont know"]'
+);
+
+-- ADDING 4 TASKS TO VARIANT 2
+
+INSERT INTO task
+(task, answer, variant_id, options)
+VALUES ('What is 2 * 2?', '4', 2, '["4", "2", "1", "6"]');
+
+INSERT INTO task
+(task, answer, variant_id, options)
+VALUES ('What is 2 + 2?', '4', 2, '["3", "2", "4", "1"]');
+
+INSERT INTO task
+(task, answer, variant_id, options)
+VALUES ('What is 2 % 2?', '0', 2, '["60", "2", "0", "1"]');
+
+INSERT INTO task
+(task, answer, variant_id, options)
+VALUES ('What is 2 / 2?', '1', 2, '["3", "2", "0", "1"]');
