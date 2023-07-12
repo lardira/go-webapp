@@ -10,9 +10,8 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const onLogout = () => {
-    userContext.clear();
-    //TODO: send request to logout
-    navigate('/')
+    userContext.logOut()
+    navigate('/');
   };
 
   return (
@@ -24,13 +23,10 @@ const Navbar = () => {
           </Link>
         </div>
         <div className='user-profile-nav-view'>
-          {userContext.isAuth ? (
-            <div>
-              {userContext.login}
-              <button className='logout-button' onClick={onLogout}>
-                Logout
-              </button>
-            </div>
+          {userContext.apiKey ? (
+            <button className='logout-button' onClick={onLogout}>
+              Logout
+            </button>
           ) : (
             <Link to='/auth'>Login</Link>
           )}

@@ -1,0 +1,7 @@
+.task-container {
+  margin: 0.5%;
+}
+
+.task .task-label {
+  font-weight: bold;
+}
