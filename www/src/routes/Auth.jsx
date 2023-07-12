@@ -1,4 +1,5 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { UserContext } from '../context/UserContext';
 import Form from '../components/Form';
 import Utils from '../utils/utils';
@@ -9,6 +10,7 @@ const Auth = () => {
   const MIN_PASS_LENGTH = 5;
 
   const userContext = useContext(UserContext);
+  const navigate = useNavigate();
 
   const onLoginSubmit = ({ login, password }) => {
     const aggregator = Utils.newAggregator();
@@ -20,10 +22,9 @@ const Auth = () => {
     if (!aggregator.empty()) {
       alert(aggregator.aggregate());
     } else {
-      //TODO: after login
-      userContext.setIsAuth(true);
-      userContext.setPassword(password);
-      userContext.setLogin(login);
+      userContext.authUser(login, password).then(() => {
+        navigate('/home');
+      });
     }
   };
 
@@ -40,10 +41,12 @@ const Auth = () => {
 
     if (!aggregator.empty()) alert(aggregator.aggregate());
     else {
-      alert(
-        'Вы успешно зарегистрированы в системе!\n' +
-          'Введите ваш логин и пароль для входа в систему'
-      );
+      userContext.createUser(login, password).then(() => {
+        alert(
+          'Вы успешно зарегистрированы в системе!\n' +
+            'Введите ваш логин и пароль для входа в систему'
+        );
+      });
     }
   };
 

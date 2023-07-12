@@ -1,0 +1,6 @@
+.variants-feed {
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  margin-top: 10%;
+}

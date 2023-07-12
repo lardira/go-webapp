@@ -1,0 +1,15 @@
+.variant-container {
+  padding: 0.5%;
+  margin: 0.5%;
+  border: 2px solid;
+}
+
+.variant-container .variant {
+  width: 250px;
+  height: 50px;
+}
+
+.variant-container:hover {
+  cursor: pointer;
+  box-shadow: 0px 5px 5px black;
+}

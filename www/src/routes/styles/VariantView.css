@@ -1,0 +1,15 @@
+.task-feed {
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  margin-top: 10%;
+}
+
+.result-percent {
+  font-size: 3rem;
+}
+
+.calculate-button {
+  margin-top: 2%;
+  width: 6%;
+}
