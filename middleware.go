@@ -13,6 +13,10 @@ import (
 	http_errors "github.com/lardira/go-webapp/utils/errors"
 )
 
+func setContentJson(w *http.ResponseWriter) {
+	(*w).Header().Set("Content-Type", "application/json")
+}
+
 func (s *ApiServer) EnableJsonContentType() {
 	userHandler := s.UserHandler
 	authHandler := s.AuthHandler
@@ -20,24 +24,33 @@ func (s *ApiServer) EnableJsonContentType() {
 	testHandler := s.TestHandler
 
 	s.UserHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		setContentJson(&w)
 		userHandler.ServeHTTP(w, r)
 	})
 
 	s.AuthHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		setContentJson(&w)
 		authHandler.ServeHTTP(w, r)
 	})
 
 	s.VariantHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		setContentJson(&w)
 		variantHandler.ServeHTTP(w, r)
 	})
 
 	s.TestHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		setContentJson(&w)
 		testHandler.ServeHTTP(w, r)
 	})
+}
+
+func configureCorsOnRequest(w *http.ResponseWriter, r *http.Request) (shouldReturn bool) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization")
+
+	//handling preflight
+	return r.Method == "OPTIONS"
 }
 
 func (s *ApiServer) EnableCors() {
@@ -47,12 +60,8 @@ func (s *ApiServer) EnableCors() {
 	testHandler := s.TestHandler
 
 	s.UserHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization")
-
-		//handling preflight
-		if r.Method == "OPTIONS" {
+		shouldReturn := configureCorsOnRequest(&w, r)
+		if shouldReturn {
 			return
 		}
 
@@ -60,12 +69,8 @@ func (s *ApiServer) EnableCors() {
 	})
 
 	s.AuthHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization")
-
-		//handling preflight
-		if r.Method == "OPTIONS" {
+		shouldReturn := configureCorsOnRequest(&w, r)
+		if shouldReturn {
 			return
 		}
 
@@ -73,12 +78,8 @@ func (s *ApiServer) EnableCors() {
 	})
 
 	s.VariantHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization")
-
-		//handling preflight
-		if r.Method == "OPTIONS" {
+		shouldReturn := configureCorsOnRequest(&w, r)
+		if shouldReturn {
 			return
 		}
 
@@ -86,12 +87,8 @@ func (s *ApiServer) EnableCors() {
 	})
 
 	s.TestHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization")
-
-		//handling preflight
-		if r.Method == "OPTIONS" {
+		shouldReturn := configureCorsOnRequest(&w, r)
+		if shouldReturn {
 			return
 		}
 
@@ -99,25 +96,33 @@ func (s *ApiServer) EnableCors() {
 	})
 }
 
+func checkAuth(w http.ResponseWriter, r *http.Request) (shouldReturn bool) {
+	login, password, ok := utils.ParseAuthHeader(w, r, AUTH_TYPE, AUTH_HEADER)
+	if !ok {
+		http_errors.NotAuthorized(w)
+		return true
+	}
+
+	user, err := model.GetUserByLoginAndPasword(
+		GlobalConnectionPool,
+		login,
+		password,
+	)
+
+	if err != nil || !user.IsAuth {
+		http_errors.NotAuthorized(w)
+		return true
+	}
+	return false
+}
+
 func (s *ApiServer) EnableSecurity() {
 	variantHandler := s.VariantHandler
 	testHandler := s.TestHandler
 
 	s.VariantHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		login, password, ok := utils.ParseAuthHeader(w, r, AUTH_TYPE, AUTH_HEADER)
-		if !ok {
-			http_errors.NotAuthorized(w)
-			return
-		}
-
-		user, err := model.GetUserByLoginAndPasword(
-			GlobalConnectionPool,
-			login,
-			password,
-		)
-
-		if err != nil || !user.IsAuth {
-			http_errors.NotAuthorized(w)
+		shouldReturn := checkAuth(w, r)
+		if shouldReturn {
 			return
 		}
 
@@ -125,25 +130,35 @@ func (s *ApiServer) EnableSecurity() {
 	})
 
 	s.TestHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		login, password, ok := utils.ParseAuthHeader(w, r, AUTH_TYPE, AUTH_HEADER)
-		if !ok {
-			http_errors.NotAuthorized(w)
-			return
-		}
-
-		user, err := model.GetUserByLoginAndPasword(
-			GlobalConnectionPool,
-			login,
-			password,
-		)
-
-		if err != nil || !user.IsAuth {
-			http_errors.NotAuthorized(w)
+		shouldReturn := checkAuth(w, r)
+		if shouldReturn {
 			return
 		}
 
 		testHandler.ServeHTTP(w, r)
 	})
+}
+
+func logRequest(logFileName string, r *http.Request) {
+	logFile, err := os.OpenFile(
+		logFileName,
+		os.O_CREATE|os.O_APPEND|os.O_RDWR,
+		0666,
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer logFile.Close()
+
+	multiWriter := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(multiWriter)
+
+	logMsg := fmt.Sprintf(
+		"%v - %v",
+		r.Method,
+		r.RequestURI,
+	)
+	log.Println(logMsg)
 }
 
 func (s *ApiServer) EnableRequestLogging() {
@@ -157,94 +172,22 @@ func (s *ApiServer) EnableRequestLogging() {
 	logFileName := fmt.Sprintf(logFileNameFormat, "API", timeNow.Day(), timeNow.Year())
 
 	s.UserHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logFile, err := os.OpenFile(
-			logFileName,
-			os.O_CREATE|os.O_APPEND|os.O_RDWR,
-			0666,
-		)
-		if err != nil {
-			panic(err)
-		}
-		defer logFile.Close()
-
-		multiWriter := io.MultiWriter(os.Stdout, logFile)
-		log.SetOutput(multiWriter)
-
-		logMsg := fmt.Sprintf(
-			"%v - %v",
-			r.Method,
-			r.RequestURI,
-		)
-		log.Println(logMsg)
+		logRequest(logFileName, r)
 		userHandler.ServeHTTP(w, r)
 	})
 
 	s.AuthHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logFile, err := os.OpenFile(
-			logFileName,
-			os.O_CREATE|os.O_APPEND|os.O_RDWR,
-			0666,
-		)
-		if err != nil {
-			panic(err)
-		}
-		defer logFile.Close()
-
-		multiWriter := io.MultiWriter(os.Stdout, logFile)
-		log.SetOutput(multiWriter)
-
-		logMsg := fmt.Sprintf(
-			"%v - %v",
-			r.Method,
-			r.RequestURI,
-		)
-		log.Println(logMsg)
+		logRequest(logFileName, r)
 		authHandler.ServeHTTP(w, r)
 	})
 
 	s.VariantHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logFile, err := os.OpenFile(
-			logFileName,
-			os.O_CREATE|os.O_APPEND|os.O_RDWR,
-			0666,
-		)
-		if err != nil {
-			panic(err)
-		}
-		defer logFile.Close()
-
-		multiWriter := io.MultiWriter(os.Stdout, logFile)
-		log.SetOutput(multiWriter)
-
-		logMsg := fmt.Sprintf(
-			"%v - %v",
-			r.Method,
-			r.RequestURI,
-		)
-		log.Println(logMsg)
+		logRequest(logFileName, r)
 		variantHandler.ServeHTTP(w, r)
 	})
 
 	s.TestHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logFile, err := os.OpenFile(
-			logFileName,
-			os.O_CREATE|os.O_APPEND|os.O_RDWR,
-			0666,
-		)
-		if err != nil {
-			panic(err)
-		}
-		defer logFile.Close()
-
-		multiWriter := io.MultiWriter(os.Stdout, logFile)
-		log.SetOutput(multiWriter)
-
-		logMsg := fmt.Sprintf(
-			"%v - %v",
-			r.Method,
-			r.RequestURI,
-		)
-		log.Println(logMsg)
+		logRequest(logFileName, r)
 		testHandler.ServeHTTP(w, r)
 	})
 }
