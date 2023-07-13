@@ -31,18 +31,3 @@ func GetAllVariants(db *sql.DB) ([]Variant, error) {
 	}
 	return output, nil
 }
-
-// func GetVariantById(db *sql.DB, id int64) (Variant, error) {
-// 	query := `
-// 		SELECT id, is_auth FROM users
-// 		WHERE login=$1 AND password=$2
-// 	`
-// 	var user User = User{}
-
-// 	err := db.QueryRow(query, login, password).Scan(
-// 		&user.Id,
-// 		&user.IsAuth,
-// 	)
-
-// 	return user, err
-// }
